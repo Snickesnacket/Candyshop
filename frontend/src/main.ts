@@ -15,6 +15,7 @@ const jsonProducts = localStorage.getItem('stock_qty') ?? '[]'
 const jsonCart = localStorage.getItem('cart_items') ?? '[]'
 const jsonOrder = localStorage.getItem('orders') ?? '[]'
 
+
 // Array for products, with products from localStorage if there is any
 let products: IProduct[] = JSON.parse(jsonProducts)
 
@@ -294,13 +295,16 @@ rowEl?.addEventListener('click', e => {
           <p class="text-center">Artikel nr: ${products[index].id}</p>
           ${products[index].description}
           <p class="modal-price text-center">${products[index].price} kr</p>
-          <button id="product-num${products[index].id}" class="text-center clr-button modal-button" tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+             <p data-id="${products[index].id}" class="card-text stock-qty">${products[index].stock_quantity} i lager</p>
+          <button id="product-num${products[index].id}" class="text-center clr-button modal-button" data-id="${products[index].id} tabindex="-1"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
           class="bi bi-basket" viewBox="0 0 16 16">
           <path d="M5.757 1.071a.5.5 0 0 1 .172.686L3.383 6h9.234L10.07 1.757a.5.5 0 1 1 .858-.514L13.783 6H15a1 1 0 0 1 1 1v1a1 1 0 0 1-1 1v4.5a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 1 13.5V9a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h1.217L5.07 1.243a.5.5 0 0 1 .686-.172zM2 9v4.5A1.5 1.5 0 0 0 3.5 15h9a1.5 1.5 0 0 0 1.5-1.5V9H2zM1 7v1h14V7H1zm3 3a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3A.5.5 0 0 1 4 10zm2 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3A.5.5 0 0 1 6 10zm2 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3A.5.5 0 0 1 8 10zm2 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5zm2 0a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 1 .5-.5z" />
           </svg>Lägg till</button>
         </div>
       </div>
     </div>`
+
+
 
     // 3. If the stock qty is outofstock, disable the 'lägg till'-button
     if (products[index].stock_status === "outofstock") {
@@ -533,7 +537,22 @@ const renderCheckout = () => {
 // array of previous orders
 let savedOrder: IConfirmation[] = JSON.parse(jsonOrder)
 
+
+
+
 const sendOrder = () => {
+
+  const savedCustomer = JSON.parse(localStorage.getItem('customer') || '{}');
+
+  if (Object.keys(savedCustomer).length) {
+    document.querySelector<HTMLInputElement>('#first-name')!.value = savedCustomer.firstName;
+    document.querySelector<HTMLInputElement>('#last-name')!.value = savedCustomer.lastName;
+    document.querySelector<HTMLInputElement>('#adress')!.value = savedCustomer.address;
+    document.querySelector<HTMLInputElement>('#postcode')!.value = savedCustomer.postcode;
+    document.querySelector<HTMLInputElement>('#city')!.value = savedCustomer.city;
+    document.querySelector<HTMLInputElement>('#email')!.value = savedCustomer.email;
+    document.querySelector<HTMLInputElement>('#phone')!.value = savedCustomer.phone;
+  }
   // 2. When submit, push the customer information and order items to an object
   document.querySelector('#new-order')?.addEventListener('submit', async e => {
     e.preventDefault()
@@ -551,6 +570,26 @@ const sendOrder = () => {
       order_items: ItemOrder.order_items,
     }
 
+    if (!savedCustomer.email) {
+      localStorage.setItem('customer', JSON.stringify({
+        firstName: newOrder.customer_first_name,
+        lastName: newOrder.customer_last_name,
+        address: newOrder.customer_address,
+        postcode: newOrder.customer_postcode,
+        city: newOrder.customer_city,
+        email: newOrder.customer_email,
+        phone: newOrder.customer_phone,
+      }));
+    } else {
+      document.querySelector<HTMLInputElement>("#first-name")!.value = savedCustomer.firstName;
+      document.querySelector<HTMLInputElement>("#last-name")!.value = savedCustomer.lastName;
+      document.querySelector<HTMLInputElement>("#adress")!.value = savedCustomer.address;
+      document.querySelector<HTMLInputElement>("#postcode")!.value = savedCustomer.postcode;
+      document.querySelector<HTMLInputElement>("#city")!.value = savedCustomer.city;
+      document.querySelector<HTMLInputElement>("#email")!.value = savedCustomer.email;
+      document.querySelector<HTMLInputElement>("#phone")!.value = savedCustomer.phone;
+    }
+
     const getConfirmation = async () => {
       try {
         const res = await postOrder(newOrder)
@@ -561,6 +600,7 @@ const sendOrder = () => {
         // 4. Save the order-information to local storage
         savedOrder.push(orderData)
         localStorage.setItem('orders', JSON.stringify(savedOrder))
+        localStorage.setItem('newOrder', JSON.stringify(savedCustomer))
 
         // print out order-section to DOM
         document.querySelector('.heading-container')!.innerHTML = `
